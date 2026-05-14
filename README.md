@@ -1,4 +1,4 @@
-# Debugix — News site (TanStack Start + SQLite)
+# Debugix — News sit(TanStack Start + SQLite)
 
 Полнофункциональный сайт новостей. Хранилище — **SQLite** (better-sqlite3).
 Новости создаются и удаляются через админку и сразу пропадают со главной.
