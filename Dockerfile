@@ -37,7 +37,7 @@ COPY --from=build /app/.output ./.output
 
 # Persistent SQLite volume
 RUN mkdir -p /data
-// VOLUME ["/data"]
+
 
 EXPOSE 3000
 HEALTHCHECK --interval=30s --timeout=5s --start-period=15s \
