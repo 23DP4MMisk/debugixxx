@@ -1,11 +1,9 @@
 # ─── Stage 1: build ──────────────────────────────────────────
-FROM node:20-bookworm-slim AS build
+FROM node:20-bookworm AS build
 WORKDIR /app
 
-# Build tools for better-sqlite3 (native module)
-RUN apt-get update && apt-get install -y --no-install-recommends \
-    python3 make g++ ca-certificates \
- && rm -rf /var/lib/apt/lists/*
+# Используем полный образ bookworm (в нем уже есть python3, make, g++)
+# Это экономит время на apt-get update и установку компиляторов
 
 COPY package*.json ./
 RUN npm install --include=dev
@@ -13,31 +11,34 @@ RUN npm install --include=dev
 COPY . .
 RUN npm run build
 
+# Очищаем dev-зависимости и пересобираем только production native-модули прямо здесь
+RUN npm prune --omit=dev
+
 # ─── Stage 2: runtime ────────────────────────────────────────
+# Используем максимально легкий образ для работы
 FROM node:20-bookworm-slim AS runtime
 WORKDIR /app
+
 ENV NODE_ENV=production \
     PORT=3000 \
     DATA_DIR=/data
 
-# Runtime libs for native sqlite + healthcheck tool
+# Устанавливаем только curl/wget для хелсчека, без тяжелых компиляторов!
 RUN apt-get update && apt-get install -y --no-install-recommends \
     ca-certificates wget \
  && rm -rf /var/lib/apt/lists/*
 
-# Re-install only production deps and rebuild native modules
-COPY package*.json ./
-RUN apt-get update && apt-get install -y --no-install-recommends python3 make g++ \
- && npm install --omit=dev \
- && apt-get purge -y python3 make g++ && apt-get autoremove -y \
- && rm -rf /var/lib/apt/lists/* /root/.npm
-
-# Built output
+# Копируем результаты сборки Nuxt
 COPY --from=build /app/.output ./.output
 
-# Persistent SQLite volume
-RUN mkdir -p /data
+# Если better-sqlite3 требует наличия node_modules в рантайме, 
+# копируем уже скомпилированные production-зависимости из Stage 1
+COPY --from=build /app/node_modules ./node_modules
+COPY package*.json ./
 
+# Папку /data создавать через RUN mkdir не обязательно, 
+# Railway создаст её сам при монтировании Volume, но оставим для структуры
+RUN mkdir -p /data
 
 EXPOSE 3000
 HEALTHCHECK --interval=30s --timeout=5s --start-period=15s \
