@@ -40,4 +40,4 @@ HEALTHCHECK --interval=30s --timeout=5s --start-period=15s \
   CMD wget -qO- 127.0.0 >/dev/null || exit 1
 
 # Запуск с явным пробросом PORT и HOST для Vinxi / Nitro сервера
-CMD ["sh", "-c", "PORT=$PORT HOST=$HOST node dist/server/server.js"]
+CMD ["sh", "-c", "HOST=0.0.0.0 PORT=$PORT NITRO_HOST=0.0.0.0 NITRO_PORT=$PORT node dist/server/server.js"]
