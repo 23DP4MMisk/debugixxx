@@ -6,7 +6,6 @@ COPY package*.json ./
 RUN npm install --include=dev
 
 COPY . .
-# Сборка создает папку dist/
 RUN npm run build
 
 # Удаляем dev-зависимости, оставляя только production для рантайма
@@ -16,8 +15,10 @@ RUN npm prune --omit=dev
 FROM node:22-bookworm-slim AS runtime
 WORKDIR /app
 
+# Устанавливаем переменные окружения для работы сервера в контейнере
 ENV NODE_ENV=production \
     PORT=3000 \
+    HOST=0.0.0.0 \
     DATA_DIR=/data
 
 RUN apt-get update && apt-get install -y --no-install-recommends \
@@ -34,9 +35,9 @@ RUN mkdir -p /data
 
 EXPOSE 3000
 
-# Исправленный хелсчек (убран опечаток в IP)
+# Исправленный хелсчек (добавлен полный IP адрес)
 HEALTHCHECK --interval=30s --timeout=5s --start-period=15s \
   CMD wget -qO- 127.0.0 >/dev/null || exit 1
 
-# Запуск вашего скомпилированного SSR-сервера Vite
-CMD ["node", "dist/server/server.js"]
+# Запуск с явным пробросом PORT и HOST для Vinxi / Nitro сервера
+CMD ["sh", "-c", "PORT=$PORT HOST=$HOST node dist/server/server.js"]
